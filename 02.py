@@ -1,46 +1,57 @@
-# flashcard_quiz_app.py
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-flashcards = []
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
-def add_flashcard():
-    question = input("Enter the question: ")
-    answer = input("Enter the answer: ")
-    flashcards.append({'question': question, 'answer': answer})
-    print("Flashcard added!\n")
+# Load the dataset
+# Option 1: Load from sklearn
+from sklearn.datasets import load_iris
+iris = load_iris()
+df = pd.DataFrame(data=iris.data, columns=iris.feature_names)
+df['species'] = iris.target
+df['species'] = df['species'].map({0: 'setosa', 1: 'versicolor', 2: 'virginica'})
 
-def take_quiz():
-    if not flashcards:
-        print("No flashcards available. Add some first.\n")
-        return
 
-    score = 0
-    for i, card in enumerate(flashcards):
-        print(f"\nQuestion {i + 1}: {card['question']}")
-        user_answer = input("Your answer: ")
-        if user_answer.strip().lower() == card['answer'].strip().lower():
-            print("Correct!")
-            score += 1
-        else:
-            print(f"Incorrect. The correct answer was: {card['answer']}")
-    print(f"\nQuiz complete! Your score: {score}/{len(flashcards)}\n")
+print("First 5 rows of dataset:")
+print(df.head())
 
-def menu():
-    while True:
-        print("Flashcard Quiz App")
-        print("1. Add Flashcard")
-        print("2. Take Quiz")
-        print("3. Exit")
+print("\nClass distribution:")
+print(df['species'].value_counts())
 
-        choice = input("Enter your choice: ")
-        if choice == '1':
-            add_flashcard()
-        elif choice == '2':
-            take_quiz()
-        elif choice == '3':
-            print("Goodbye!")
-            break
-        else:
-            print("Invalid choice. Please try again.\n")
+sns.pairplot(df, hue='species')
+plt.title("Pairplot of Iris Features")
+plt.show()
 
-if __name__ == "__main__":
-    menu()
+X = df.drop(columns='species')
+y = df['species']
+
+le = LabelEncoder()
+y_encoded = le.fit_transform(y)
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
+
+model = LogisticRegression(max_iter=200)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+print("\nAccuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+
+sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, cmap='Blues', fmt='d',
+            xticklabels=le.classes_, yticklabels=le.classes_)
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.show()
+
+sample = np.array([[5.1, 3.5, 1.4, 0.2]])  
+predicted_class = le.inverse_transform(model.predict(sample))
+print("\nPredicted species for input [5.1, 3.5, 1.4, 0.2]:", predicted_class[0])
